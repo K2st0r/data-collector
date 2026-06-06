@@ -1,189 +1,167 @@
-# Data Collector 网页数据采集器
+<div align="center">
 
-> Universal web data collector with CSS selectors, regex, auto-pagination & export
+# Data Collector
 
-![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
-![License](https://img.shields.io/badge/License-MIT-green)
-![Version](https://img.shields.io/badge/Version-2.0.0-purple)
+**Universal Web Data Extraction Toolkit**
 
-[English](#english) | [中文](#chinese)
+[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://python.org)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/Version-2.1.0-purple.svg)](https://github.com/K2st0r/data-collector/releases)
+[![Donate](https://img.shields.io/badge/Donate-USDT-red.svg)](#donate)
+
+</div>
 
 ---
 
-## <a name="chinese">🇨🇳 中文说明</a>
+## Table of Contents
 
-### 概述
+- [English](#english)
+- [中文](#chinese)
+- [Donate / 打赏](#donate--打赏)
 
-Data Collector 是一个通用的网页数据采集器，支持 CSS 选择器和正则表达式提取、自动翻页、JSON/CSV 导出，内置重试策略和反反爬机制。
+---
 
-### 功能特性
+## English
 
-- **CSS 选择器采集**：精确提取指定网页元素
-- **正则表达式匹配**：从页面源代码中提取结构化数据
-- **结构化采集**：按字段定义采集，支持一行多字段
-- **自动翻页**：通过 URL 模板 `{page}` 自动翻页
-- **JSON/CSV 导出**：直接输出为可分析的数据文件
-- **重试策略**：自动重试 429/5xx 错误，指数退避
-- **反爬处理**：真实浏览器 User-Agent 和请求头
-- **代理支持**：通过 HTTP/SOCKS5 代理访问
-- **编码自动识别**：自动检测网页编码
+### What is Data Collector?
 
-### 快速开始
+Data Collector is a **Python library and CLI tool** for extracting structured data from web pages. It supports CSS selectors, regex patterns, automatic pagination, and JSON/CSV export — like a lightweight, no-config alternative to Scrapy for common scraping tasks.
+
+### Features
+
+| Category | Description |
+|----------|-------------|
+| **CSS Selectors** | Extract elements using CSS syntax (h1, .class, #id) |
+| **Regex Extraction** | Pattern-matching on raw page source |
+| **Structured Scraping** | Multi-field extraction with row/container selectors |
+| **Auto Pagination** | `{page}` placeholder in URL for automatic page iteration |
+| **JSON/CSV Export** | Save results directly to file |
+| **Retry Strategy** | Auto-retry on 429/5xx with exponential backoff |
+| **Proxy Support** | Route requests through HTTP/SOCKS proxy |
+| **Custom Headers** | Full User-Agent and header customization |
+| **Politeness** | Configurable inter-request delay |
+
+### Installation
 
 ```bash
-# 安装依赖
+git clone https://github.com/K2st0r/data-collector.git
+cd data-collector
 pip install requests beautifulsoup4 lxml
-
-# 使用
-python data_collector.py
 ```
 
-### 使用示例
+### CLI Usage
+
+```bash
+# Extract all H1 texts
+python data_collector.py --url https://example.com --selector h1
+
+# Extract titles from Hacker News
+python data_collector.py -u "https://news.ycombinator.com" -s ".titleline > a"
+
+# Multi-page scraping
+python data_collector.py -u "https://example.com?page={page}" -s ".title" -p 5
+
+# Save results
+python data_collector.py -u https://example.com -s "h2.title" -o results.json
+python data_collector.py -u https://example.com -s "h2.title" -o results.csv
+
+# Via proxy
+python data_collector.py --url https://github.com --selector ".repo" --proxy http://127.0.0.1:10793
+```
+
+### Python API
 
 ```python
 from data_collector import DataCollector
 
-# 创建采集器
-collector = DataCollector()
+# Initialize
+collector = DataCollector(proxy="http://127.0.0.1:10793")
 
-# 方式1：CSS选择器采集
-titles = collector.scrape(
-    "https://example.com/articles",
-    selector="h2.title"
-)
-print(f"采集到 {len(titles)} 条标题")
+# Simple text extraction
+titles = collector.scrape("https://example.com/articles", selector="h2.title")
 
-# 方式2：正则采集
-emails = collector.scrape(
-    "https://example.com/contact",
-    pattern=r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
-)
+# Regex extraction
+emails = collector.scrape("https://example.com/contact",
+                          pattern=r"[\w.+-]+@[\w-]+\.[\w.]+")
 
-# 方式3：结构化采集（最常用）
+# Structured extraction (most powerful)
 products = collector.scrape_structured(
     "https://shop.example.com/products?page={page}",
     fields={
-        "_row": ".product-card",      # 每条数据的容器选择器
-        "name": ".product-name",       # 商品名
-        "price": ".price",             # 价格
-        "rating": ".rating .score",    # 评分
-        "description": ".desc"         # 描述
+        "_row":  ".product-card",   # container for each item
+        "name":  ".product-name",
+        "price": ".price",
+        "rating": ".stars",
     },
-    pages=5,    # 采集5页
-    delay=1.5   # 每页间隔1.5秒
+    pages=5,  delay=1.5
 )
+# -> [{"name": "...", "price": "...", "rating": "..."}, ...]
 
-print(f"采集到 {len(products)} 件商品")
-# 第1件商品：{"name": "...", "price": "...", "rating": "...", "description": "..."}
-
-# 导出数据
+# Export
 collector.to_json(products, "products.json")
 collector.to_csv(products, "products.csv")
 ```
 
-### 代理设置
-
-```python
-# 国内用户通过代理访问外网
-collector = DataCollector(proxy="http://127.0.0.1:10793")
-
-# 自定义 User-Agent
-collector = DataCollector(
-    user_agent="Googlebot/2.1 (+http://www.google.com/bot.html)"
-)
-```
-
-### 完整字段说明
-
-`scrape_structured` 的 `fields` 参数：
-
-| 字段 | 说明 | 示例 |
-|------|------|------|
-| `_row` | 每条数据行的CSS选择器 | `".product-card"`, `"tr"`, `"li.item"` |
-| `字段名` | 自定义字段的CSS选择器 | `".title"`, `".price"`, `"span.author"` |
-
-如果 `_row` 为空或未匹配到任何元素，则整页作为一条记录。
-
 ---
 
-## <a name="english">🇬🇧 English</a>
+## 中文
 
-### Overview
+### 概述
 
-Data Collector is a universal web data extraction tool with CSS selector and regex support, automatic pagination, JSON/CSV export, built-in retry strategy, and anti-scraping countermeasures.
+Data Collector 是一个 **Python 库 + CLI 工具**，用于网页结构化数据采集。支持 CSS 选择器、正则匹配、自动翻页、JSON/CSV 导出。
 
-### Features
-
-- **CSS selector extraction**: Precisely extract specific page elements
-- **Regex pattern matching**: Extract structured data from page source
-- **Structured scraping**: Multi-field extraction per row
-- **Auto pagination**: URL template `{page}` for automatic page iteration
-- **JSON/CSV export**: Output as analyzable data files
-- **Retry strategy**: Automatic retry for 429/5xx with exponential backoff
-- **Anti-scraping**: Real browser User-Agent and request headers
-- **Proxy support**: HTTP/SOCKS5 proxy access
-- **Auto encoding detection**: Automatic charset detection
-
-### Quick Start
+### 安装
 
 ```bash
+git clone https://github.com/K2st0r/data-collector.git
+cd data-collector
 pip install requests beautifulsoup4 lxml
-python data_collector.py
 ```
 
-### Usage
+### CLI 命令
+
+```bash
+python data_collector.py --url https://example.com --selector h1
+python data_collector.py -u "https://example.com?page={page}" -s ".title" -p 5
+python data_collector.py -u https://example.com -s ".title" -o results.json
+python data_collector.py --url https://github.com --selector ".repo" --proxy http://127.0.0.1:10793
+```
+
+### Python API
 
 ```python
 from data_collector import DataCollector
 
 collector = DataCollector()
 
-# CSS selector
-results = collector.scrape("https://example.com", selector="h1")
+# CSS选择器提取
+titles = collector.scrape("https://example.com", selector="h1")
 
-# Regex
-emails = collector.scrape("https://example.com", pattern=r"[\w.+-]+@[\w-]+\.[\w.]+")
-
-# Structured (most useful)
+# 结构化采集
 data = collector.scrape_structured(
-    "https://example.com/list?page={page}",
-    fields={
-        "_row": ".item",
-        "title": ".title",
-        "price": ".price",
-        "date": ".date"
-    },
-    pages=3
+    "https://shop.com/list?page={page}",
+    fields={"_row": ".card", "title": ".name", "price": ".price"},
+    pages=5
 )
 
-# Export
+# 导出
 collector.to_json(data, "output.json")
 collector.to_csv(data, "output.csv")
 ```
 
-### API Reference
-
-| Method | Parameters | Returns | Description |
-|--------|-----------|---------|-------------|
-| `scrape(url, selector, pattern, pages, delay)` | url, css selector, regex, page count, delay | list | Text extraction |
-| `scrape_structured(url, fields, pages, delay)` | url, field definitions, page count, delay | list of dicts | Structured extraction |
-| `to_csv(data, filepath)` | data list, output path | bool | Export to CSV |
-| `to_json(data, filepath)` | data list, output path | bool | Export to JSON |
-
 ---
 
-## 打赏 / Donate
+## Donate / 打赏
 
-如果这个项目帮到了您，欢迎打赏支持持续开发！
+<div align="center">
+<img src="https://raw.githubusercontent.com/K2st0r/data-collector/main/static/zan.png" width="200" alt="WeChat Pay">
 
-If this project helps you, consider supporting continued development!
-
-![WeChat Pay](https://raw.githubusercontent.com/K2st0r/data-collector/main/static/zan.png)
-
-📱 微信扫码赞赏 / WeChat Pay QR Code
+📱 微信扫码赞赏
 
 **USDT (ERC20):** `0xAfe9B67B1DF618FAeD32dC71E3458cf549f26697`
 
+</div>
+
 ---
 
-Open Source · MIT License · Made with ❤️
+MIT License · Made with ❤️ by [K2st0r](https://github.com/K2st0r)
