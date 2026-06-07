@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "web-data-collector"
+version = "2.1.0"
+description = "Universal web data extraction toolkit - SEO meta, pricing, structured data"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+keywords = ["web-scraping", "data-collection", "crawler", "seo", "extraction"]
+authors = [
+    {name = "K2st0r", email = "k2st0r@users.noreply.github.com"},
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/K2st0r/data-collector"
+Repository = "https://github.com/K2st0r/data-collector"
+Donate = "https://github.com/K2st0r/data-collector#donate--打赏"
